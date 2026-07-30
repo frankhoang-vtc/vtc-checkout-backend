@@ -77,7 +77,7 @@ app.post('/api/checkout/create-customer', async (req, res) => {
     const client = mtClient();
     const response = await client.post('/v1/accounts', {
       email,
-      generalDetails: {
+      personalDetails: {
         firstName,
         lastName,
         phone,
