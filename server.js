@@ -78,8 +78,8 @@ app.post('/api/checkout/create-customer', async (req, res) => {
     const response = await client.post('/v1/accounts', {
       email,
       personalDetails: {
-        firstName,
-        lastName,
+        firstname: firstName,
+        lastname: lastName,
         phone,
         country,
         address
