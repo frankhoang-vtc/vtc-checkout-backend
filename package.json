@@ -1,0 +1,14 @@
+{
+  "name": "vtc-checkout-backend",
+  "version": "1.0.0",
+  "description": "Backend for Verified Trader Capital checkout - connects website to Match-Trade Broker-API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "axios": "^1.7.2"
+  }
+}
