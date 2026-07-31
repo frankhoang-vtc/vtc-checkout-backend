@@ -49,7 +49,7 @@ app.post('/api/checkout/check-customer', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'email is required' });
 
     const client = mtClient();
-    const response = await client.get(`/v1/accounts/email/${encodeURIComponent(email)}`);
+    const response = await client.get(`/v1/accounts/by-email/${encodeURIComponent(email)}`);
 
     // If Match-Trade returns account data, it exists
     return res.json({ exists: true, crmAccountUuid: response.data.uuid || response.data.id });
@@ -85,7 +85,7 @@ function generatePassword() {
 }
 
 async function findExistingAccountUuid(client, email) {
-  const lookup = await client.get(`/v1/accounts/email/${encodeURIComponent(email)}`);
+  const lookup = await client.get(`/v1/accounts/by-email/${encodeURIComponent(email)}`);
   return lookup.data.uuid || lookup.data.id;
 }
 
