@@ -66,17 +66,41 @@ app.post('/api/checkout/check-customer', async (req, res) => {
 
 /* ------------------------------------------------------------
    STEP 2: Create the CRM account (no trading account yet)
+   - Auto-generates a password (client never types one on the
+     public checkout page; they'll set/reset it via Match-Trade's
+     own login flow later).
+   - Self-healing: if Match-Trade says this email already has an
+     account (409 conflict), look that account up and reuse it
+     instead of failing the checkout - a client should be able to
+     buy multiple challenges with the same email without issue.
    ------------------------------------------------------------ */
-app.post('/api/checkout/create-customer', async (req, res) => {
-  try {
-    const { firstName, lastName, email, phone, country, address } = req.body;
-    if (!firstName || !lastName || !email) {
-      return res.status(400).json({ error: 'firstName, lastName, and email are required' });
-    }
+function generatePassword() {
+  // 16-character random password combining letters, numbers, symbols
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+  let pw = '';
+  for (let i = 0; i < 16; i++) {
+    pw += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return pw;
+}
 
-    const client = mtClient();
+async function findExistingAccountUuid(client, email) {
+  const lookup = await client.get(`/v1/accounts/email/${encodeURIComponent(email)}`);
+  return lookup.data.uuid || lookup.data.id;
+}
+
+app.post('/api/checkout/create-customer', async (req, res) => {
+  const { firstName, lastName, email, phone, country, address } = req.body;
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'firstName, lastName, and email are required' });
+  }
+
+  const client = mtClient();
+
+  try {
     const response = await client.post('/v1/accounts', {
       email,
+      password: generatePassword(),
       personalDetails: {
         firstname: firstName,
         lastname: lastName,
@@ -88,9 +112,23 @@ app.post('/api/checkout/create-customer', async (req, res) => {
       // this call only creates the CRM user account.
     });
 
-    return res.json({ crmAccountUuid: response.data.uuid || response.data.id });
+    return res.json({ crmAccountUuid: response.data.uuid || response.data.id, reused: false });
 
   } catch (err) {
+    const isConflict = err.response && err.response.status === 409;
+
+    if (isConflict) {
+      // Email already has an account - look it up and reuse it
+      // instead of failing the client's checkout.
+      try {
+        const crmAccountUuid = await findExistingAccountUuid(client, email);
+        return res.json({ crmAccountUuid, reused: true });
+      } catch (lookupErr) {
+        console.error('create-customer lookup-after-conflict error:', lookupErr.response ? lookupErr.response.data : lookupErr.message);
+        return res.status(500).json({ error: 'create-customer failed' });
+      }
+    }
+
     console.error('create-customer error:', err.response ? err.response.data : err.message);
     return res.status(500).json({ error: 'create-customer failed' });
   }
