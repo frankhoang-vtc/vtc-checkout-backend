@@ -145,7 +145,7 @@ app.post('/api/checkout/create-prop-account', async (req, res) => {
     }
 
     const client = mtClient();
-    const response = await client.post('/v2/prop/prop-trading-accounts', {
+    const response = await client.post('/v2/prop/prop-accounts', {
       challengeUuid,
       crmAccountUuid,
       instantlyActive: instantlyActive === true, // false = "Awaiting Payment"
