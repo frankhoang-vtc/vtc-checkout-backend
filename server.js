@@ -138,25 +138,27 @@ app.post('/api/checkout/create-customer', async (req, res) => {
    STEP 3: Create the Prop Trading Account tied to ONE challenge
    ------------------------------------------------------------ */
 app.post('/api/checkout/create-prop-account', async (req, res) => {
-     try {
-            const { crmAccountUuid, challengeUuid, instantlyActive, phaseStep, discountCode } = req.body;
-            if (!crmAccountUuid || !challengeUuid) {
-                     return res.status(400).json({ error: 'crmAccountUuid and challengeUuid are required' });
-            }
+     // Declared outside try{} so the catch{} block below can still
+           // reference them (const/let inside try{} is NOT visible in catch{}).
+           const { crmAccountUuid, challengeUuid, instantlyActive, phaseStep, discountCode } = req.body;
+     if (!crmAccountUuid || !challengeUuid) {
+            return res.status(400).json({ error: 'crmAccountUuid and challengeUuid are required' });
+     }
 
-       const client = mtClient();
-            const response = await client.post('/v2/prop/prop-accounts', {
-                     challengeUuid,
-                     crmAccountUuid,
-                     instantlyActive: instantlyActive === true, // false = "Awaiting Payment"
-                     phaseStep: phaseStep || 1,
-                     ...(discountCode ? { discountCode } : {})
-            });
+           try {
+                  const client = mtClient();
+                  const response = await client.post('/v2/prop/prop-accounts', {
+                           challengeUuid,
+                           crmAccountUuid,
+                           instantlyActive: instantlyActive === true, // false = "Awaiting Payment"
+                           phaseStep: phaseStep || 1,
+                           ...(discountCode ? { discountCode } : {})
+                  });
 
        return res.json(response.data);
 
-     } catch (err) {
-            const mtError = err.response && err.response.data;
+           } catch (err) {
+                  const mtError = err.response && err.response.data;
 
        // Match-Trade returns this specific error when the customer already
        // has an unpaid prop-account open on the same challenge (e.g. they
@@ -174,8 +176,8 @@ app.post('/api/checkout/create-prop-account', async (req, res) => {
        }
 
        console.error('create-prop-account error:', mtError || err.message);
-            return res.status(500).json({ error: 'create-prop-account failed' });
-     }
+                  return res.status(500).json({ error: 'create-prop-account failed' });
+           }
 });
 
 const PORT = process.env.PORT || 3000;
